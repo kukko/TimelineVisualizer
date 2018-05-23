@@ -1,2 +1,2 @@
 # TimelineVisualizer
-Visualize cronological order between events.
+Visualize chronological order between events.
