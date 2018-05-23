@@ -1,0 +1,22 @@
+{
+  "name": "timelinevisualizer",
+  "version": "1.0.0",
+  "description": "Visualize chronological order between events.",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kukko/TimelineVisualizer.git"
+  },
+  "keywords": [
+    "timeline"
+  ],
+  "author": "Nyárai Gergő Péter <nyariag@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kukko/TimelineVisualizer/issues"
+  },
+  "homepage": "https://github.com/kukko/TimelineVisualizer#readme"
+}
