@@ -3,6 +3,11 @@ class Timeline{
 		this.canvas=canvas;
 		this.items=[];
 		this.setItems(items);
+		this.options={
+			padding:5,
+			lineHeight:30
+		};
+		this.render();
 	}
 	setItems(items){
 		for (let index in items){
@@ -13,7 +18,7 @@ class Timeline{
 		if (item.id===null){
 			item.id=this.generateItemID();
 		}
-		if (typeof item.previous!=="undefined"){
+		if (typeof item.previous==="object" && item.previous!==null){
 			item.previous=this.addItem(item.previous);
 		}
 		this.items.push(item);
@@ -32,12 +37,38 @@ class Timeline{
 		})!=="undefined");
 		return output;
 	}
+	render(){
+		let context=this.canvas.getContext("2d"),
+			roots=this.items.filter((item)=>{
+				return typeof item.previous==="undefined" || item.previous===null;
+			});
+		if (roots.length>0){
+			let fullWidth=0;
+			context.textBaseline="middle";
+			let fontSize=this.options.lineHeight-2*this.options.padding;
+			for (let index in roots){
+				context.fillStyle="#000000";
+				context.font=fontSize+"px Arial";
+				let textWidth=context.measureText(roots[index].name).width;
+				context.fillStyle="#FF0000";
+				context.fillRect(0+(60*index), 0, textWidth+2*this.options.padding, this.options.lineHeight+2*this.options.padding);
+				context.fillStyle="#000000";
+				context.font=fontSize+"px Arial";
+				context.fillText(roots[index].name, fullWidth+this.options.padding, this.options.lineHeight/2+this.options.padding);
+				fullWidth+=textWidth;
+			}
+		}
+		else{
+			console.log("NO ROOTS");
+		}
+	}
 }
 class TimelineItem{
-	constructor(name, previous){
+	constructor(name, previous, number, id){
 		this._id="";
-		this.name=name;
+		this._name=name;
 		this.previous=previous;
+		this.number=number;
 	}
 	get id(){
 		if (this._id!==""){
@@ -49,5 +80,8 @@ class TimelineItem{
 		if (this._id===""){
 			this._id=value;
 		}
+	}
+	get name(){
+		return this._name+(this.number!==null?(" #"+this.number):"");
 	}
 }

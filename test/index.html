@@ -8,12 +8,12 @@
 		<script src="../src/index.js"></script>
 	</head>
 	<body>
-		<canvas id="timeline"></canvas>
+		<canvas id="timeline" width="1333" height="666"></canvas>
 		<script>
 			let timeline=new Timeline(document.getElementById('timeline'), [
-				new TimelineItem("Amazing Fantasy #17", 
-					new TimelineItem("Amazing Fantasy #16", 
-						new TimelineItem("Amazing Fantasy #15")))
+				new TimelineItem("Amazing Fantasy", null, 15, 1),
+				new TimelineItem("Amazing Fantasy", 1, 16, 2),
+				new TimelineItem("Amazing Fantasy", 2, 17, 3)
 			]);
 			console.log(timeline);
 		</script>
