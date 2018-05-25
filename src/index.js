@@ -5,7 +5,8 @@ class Timeline{
 		this.setItems(items);
 		this.options={
 			padding:5,
-			lineHeight:30
+			lineHeight:30,
+			margin:10
 		};
 		this.render();
 	}
@@ -51,10 +52,10 @@ class Timeline{
 				context.font=fontSize+"px Arial";
 				let textWidth=context.measureText(roots[index].name).width;
 				context.fillStyle="#FF0000";
-				context.fillRect(0+(60*index), 0, textWidth+2*this.options.padding, this.options.lineHeight+2*this.options.padding);
+				context.fillRect(fullWidth+((this.options.padding*2+this.options.margin)*index), 0, textWidth+2*this.options.padding, this.options.lineHeight+2*this.options.padding);
 				context.fillStyle="#000000";
 				context.font=fontSize+"px Arial";
-				context.fillText(roots[index].name, fullWidth+this.options.padding, this.options.lineHeight/2+this.options.padding);
+				context.fillText(roots[index].name, fullWidth+((this.options.padding*2+this.options.margin)*index)+this.options.padding, this.options.lineHeight/2+this.options.padding);
 				fullWidth+=textWidth;
 			}
 		}
