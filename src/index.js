@@ -16,26 +16,35 @@ class Timeline{
 		}
 	}
 	addItem(item){
-		if (item.id===null){
-			item.id=this.generateItemID();
+		if (typeof this.items.find((currentItem)=>{
+			return currentItem.id===item.id;
+		})==="undefined"){
+			if (item.id===null){
+				item.id=this.generateItemID();
+			}
+			if (typeof item.previous==="object" && item.previous!==null){
+				item.previous=this.addItem(item.previous);
+			}
+			this.items.push(item);
+			return item.id;
 		}
-		if (typeof item.previous==="object" && item.previous!==null){
-			item.previous=this.addItem(item.previous);
-		}
-		this.items.push(item);
-		return item.id;
+		throw "Element with the same ID, already added.";
 	}
 	generateItemID(checkExisting=true){
-		let chars="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-			length=8,
+		let length=8,
 			output="";
 		do{
-			for (let i=0; i<length; i++){
-				output+=chars.charAt(Math.floor(Math.random()*chars.length));
-			}
+			output=this.generateRandomStr(length);
 		} while (checkExisting && typeof this.items.find((item)=>{
 			return item.id===output;
 		})!=="undefined");
+		return output;
+	}
+	generateRandomStr(length, chars="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"){
+		let output="";
+		for (let i=0; i<length; i++){
+			output+=chars.charAt(Math.floor(Math.random()*chars.length));
+		}
 		return output;
 	}
 	getItemsWithPrevious(parent){
@@ -48,6 +57,28 @@ class Timeline{
 			return item.id===id;
 		})
 	}
+	drawLine(context, previous, item){
+		context.strokeStyle=previous.color;
+		context.lineWidth=5;
+		context.beginPath();
+		context.moveTo(item.x+item.width/2, item.y);
+		context.lineTo(previous.x+previous.width/2, previous.y+previous.height);
+		context.stroke();
+	}
+	setElementColor(item){
+		if (item.hasPrevious){
+			let previous=this.getItemByID(item.previous);
+			if (previous._name===item._name){
+				item.color=previous.color;
+			}
+			else{
+				item.color="#"+this.generateRandomStr(6, "0123456789ABCDEF");
+			}
+		}
+		else{
+			item.color="#"+this.generateRandomStr(6, "0123456789ABCDEF");
+		}
+	}
 	render(items, depth=0){
 		let context=this.canvas.getContext("2d");
 		if (items.length>0){
@@ -55,10 +86,10 @@ class Timeline{
 			context.textBaseline="middle";
 			let fontSize=this.options.lineHeight-2*this.options.padding;
 			for (let index in items){
-				context.fillStyle="#000000";
+				this.setElementColor(items[index]);
 				context.font=fontSize+"px Arial";
 				let textWidth=context.measureText(items[index].name).width;
-				context.fillStyle="#FF0000";
+				context.fillStyle=items[index].color;
 				items[index].x=fullWidth+((this.options.padding*2+this.options.margin)*index);
 				items[index].y=depth*(this.options.lineHeight+2*this.options.padding+this.options.margin);
 				items[index].width=textWidth+2*this.options.padding;
@@ -70,12 +101,7 @@ class Timeline{
 				fullWidth+=textWidth;
 				if (items[index].previous!==null){
 					let previous=this.getItemByID(items[index].previous);
-					context.strokeStyle="#FF0000";
-					context.lineWidth=5;
-					context.beginPath();
-					context.moveTo(items[index].x+items[index].width/2, items[index].y);
-					context.lineTo(previous.x+previous.width/2, previous.y+previous.height);
-					context.stroke();
+					this.drawLine(context, previous, items[index]);
 				}
 				this.render(this.getItemsWithPrevious(items[index].id), depth+1);
 			}
@@ -102,5 +128,9 @@ class TimelineItem{
 	}
 	get name(){
 		return this._name+(this.number!==null?(" #"+this.number):"");
+	}
+
+	get hasPrevious(){
+		return typeof this.previous!=="undefined" && this.previous!==null;
 	}
 }
