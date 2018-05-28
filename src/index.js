@@ -6,9 +6,9 @@ class Timeline{
 		this.options={
 			padding:5,
 			lineHeight:30,
-			margin:10
+			margin:30
 		};
-		this.render();
+		this.render(this.getItemsWithPrevious(null));
 	}
 	setItems(items){
 		for (let index in items){
@@ -38,35 +38,53 @@ class Timeline{
 		})!=="undefined");
 		return output;
 	}
-	render(){
-		let context=this.canvas.getContext("2d"),
-			roots=this.items.filter((item)=>{
-				return typeof item.previous==="undefined" || item.previous===null;
-			});
-		if (roots.length>0){
+	getItemsWithPrevious(parent){
+		return this.items.filter((item)=>{
+			return item.previous===parent || (parent===null && (typeof item.previous==="undefined" || item.previous===parent));
+		})
+	}
+	getItemByID(id){
+		return this.items.find((item)=>{
+			return item.id===id;
+		})
+	}
+	render(items, depth=0){
+		let context=this.canvas.getContext("2d");
+		if (items.length>0){
 			let fullWidth=0;
 			context.textBaseline="middle";
 			let fontSize=this.options.lineHeight-2*this.options.padding;
-			for (let index in roots){
+			for (let index in items){
 				context.fillStyle="#000000";
 				context.font=fontSize+"px Arial";
-				let textWidth=context.measureText(roots[index].name).width;
+				let textWidth=context.measureText(items[index].name).width;
 				context.fillStyle="#FF0000";
-				context.fillRect(fullWidth+((this.options.padding*2+this.options.margin)*index), 0, textWidth+2*this.options.padding, this.options.lineHeight+2*this.options.padding);
+				items[index].x=fullWidth+((this.options.padding*2+this.options.margin)*index);
+				items[index].y=depth*(this.options.lineHeight+2*this.options.padding+this.options.margin);
+				items[index].width=textWidth+2*this.options.padding;
+				items[index].height=this.options.lineHeight+2*this.options.padding;
+				context.fillRect(items[index].x, items[index].y, items[index].width, items[index].height);
 				context.fillStyle="#000000";
 				context.font=fontSize+"px Arial";
-				context.fillText(roots[index].name, fullWidth+((this.options.padding*2+this.options.margin)*index)+this.options.padding, this.options.lineHeight/2+this.options.padding);
+				context.fillText(items[index].name, fullWidth+((this.options.padding*2+this.options.margin)*index)+this.options.padding, (depth*(this.options.lineHeight+2*this.options.padding+this.options.margin))+this.options.lineHeight/2+this.options.padding);
 				fullWidth+=textWidth;
+				if (items[index].previous!==null){
+					let previous=this.getItemByID(items[index].previous);
+					context.strokeStyle="#FF0000";
+					context.lineWidth=5;
+					context.beginPath();
+					context.moveTo(items[index].x+items[index].width/2, items[index].y);
+					context.lineTo(previous.x+previous.width/2, previous.y+previous.height);
+					context.stroke();
+				}
+				this.render(this.getItemsWithPrevious(items[index].id), depth+1);
 			}
-		}
-		else{
-			console.log("NO ROOTS");
 		}
 	}
 }
 class TimelineItem{
 	constructor(name, previous, number, id){
-		this._id="";
+		this._id=typeof id!=="undefined" && id!==null?id:"";
 		this._name=name;
 		this.previous=previous;
 		this.number=number;
