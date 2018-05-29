@@ -55,7 +55,21 @@ class Timeline{
 	getItemByID(id){
 		return this.items.find((item)=>{
 			return item.id===id;
-		})
+		});
+	}
+	getItemsByIDs(IDs){
+		let output=[];
+		if (IDs.length>0){
+			for (let index in this.items){
+				if (IDs.indexOf(this.items[index].id)!==-1){
+					output.push(this.items[index]);
+					if (output.length===IDs.length){
+						break;
+					}
+				}
+			}
+		}
+		return output;
 	}
 	drawLine(context, previous, item){
 		context.strokeStyle=previous.color;
@@ -71,7 +85,6 @@ class Timeline{
 				for (let index in item.previous){
 					if (typeof item.color==="undefined"){
 						let previous=this.getItemByID(item.previous[index]);
-						console.log(previous.name+" -> "+item.name+" ("+(previous._name===item._name)+")");
 						if (previous._name===item._name){
 							item.color=previous.color;
 						}
@@ -86,33 +99,64 @@ class Timeline{
 			}
 		}
 	}
-	render(items, depth=0){
-		let context=this.canvas.getContext("2d");
-		if (items.length>0){
-			let fullWidth=0;
-			context.textBaseline="middle";
-			let fontSize=this.options.lineHeight-2*this.options.padding;
-			for (let index in items){
-				this.setElementColor(items[index]);
-				context.font=fontSize+"px Arial";
-				let textWidth=context.measureText(items[index].name).width;
-				context.fillStyle=items[index].color;
-				items[index].x=fullWidth+((this.options.padding*2+this.options.margin)*index);
-				items[index].y=depth*(this.options.lineHeight+2*this.options.padding+this.options.margin);
-				items[index].width=textWidth+2*this.options.padding;
-				items[index].height=this.options.lineHeight+2*this.options.padding;
-				context.fillRect(items[index].x, items[index].y, items[index].width, items[index].height);
-				context.fillStyle="#000000";
-				context.font=fontSize+"px Arial";
-				context.fillText(items[index].name, fullWidth+((this.options.padding*2+this.options.margin)*index)+this.options.padding, (depth*(this.options.lineHeight+2*this.options.padding+this.options.margin))+this.options.lineHeight/2+this.options.padding);
-				fullWidth+=textWidth;
-				if (items[index].previous!==null){
-					for (let previousIndex in items[index].previous){
-						let previous=this.getItemByID(items[index].previous[previousIndex]);
-						this.drawLine(context, previous, items[index]);
+	getPossibleCoordinates(item){
+		if (!item.hasCoordinates){
+			if (item.previous!==null){
+				let previouses=this.getItemsByIDs(item.previous);
+				for (let index in previouses){
+					if (previouses[index]._name===item._name){
+						let newX=previouses[index].x,
+							newY=previouses[index].y+previouses[index].height+this.options.margin;
+						if (!this.coordinateIsCollisioning(newX, newY)){
+							item.x=newX;
+							item.y=newY;
+						}
 					}
 				}
-				this.render(this.getItemsWithPrevious(items[index].id), depth+1);
+			}
+			else{
+				let anotherRoots=this.items.filter((anotherRoot)=>{
+					return anotherRoot.previous===null && anotherRoot.id!==item.id && anotherRoot.hasCoordinates;
+				});
+				if (anotherRoots.length>0){
+					let latestRoot=anotherRoots[anotherRoots.length-1];
+					item.x=latestRoot.x+latestRoot.width+this.options.margin;
+					item.y=0;
+				}
+				else{
+					item.x=0;
+					item.y=0;
+				}
+			}
+		}
+	}
+	coordinateIsCollisioning(x, y){
+		return typeof this.items.find((item)=>{
+			return item.x<x && item.x+item.width>x && item.y<y && item.y+item.height>y;
+		})!=="undefined";
+	}
+	render(items){
+		let context=this.canvas.getContext("2d");
+		if (items.length>0){
+			context.textBaseline="middle";
+			let fontSize=this.options.lineHeight-2*this.options.padding;
+			context.font=fontSize+"px Arial";
+			for (let index in items){
+				this.setElementColor(items[index]);
+				let coordinates=this.getPossibleCoordinates(items[index]);
+				let textWidth=context.measureText(items[index].name).width;
+				context.fillStyle=items[index].color;
+				items[index].width=textWidth+2*this.options.padding;
+				items[index].height=this.options.lineHeight+2*this.options.padding;
+				if (items[index].previous!==null){
+					this.getItemsByIDs(items[index].previous).forEach((previous)=>{
+						this.drawLine(context, previous, items[index]);
+					});
+				}
+				context.fillRect(items[index].x, items[index].y, items[index].width, items[index].height);
+				context.fillStyle="#000000";
+				context.fillText(items[index].name, items[index].x+this.options.padding, items[index].y+this.options.lineHeight/2+this.options.padding);
+				this.render(this.getItemsWithPrevious(items[index].id));
 			}
 		}
 	}
@@ -148,5 +192,9 @@ class TimelineItem{
 
 	get hasPrevious(){
 		return typeof this.previous!=="undefined" && this.previous!==null;
+	}
+
+	get hasCoordinates(){
+		return typeof this.x!=="undefined" && typeof this.y!=="undefined";
 	}
 }
