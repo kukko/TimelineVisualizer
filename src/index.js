@@ -22,7 +22,7 @@ class Timeline{
 			if (item.id===null){
 				item.id=this.generateItemID();
 			}
-			if (typeof item.previous==="object" && item.previous!==null){
+			if (typeof item.previous==="object" && item.previous!==null && item.previous.constructor.name!=="Array"){
 				item.previous=this.addItem(item.previous);
 			}
 			this.items.push(item);
@@ -49,8 +49,8 @@ class Timeline{
 	}
 	getItemsWithPrevious(parent){
 		return this.items.filter((item)=>{
-			return item.previous===parent || (parent===null && (typeof item.previous==="undefined" || item.previous===parent));
-		})
+			return (item.previous!==null && item.previous.indexOf(parent)!==-1) || (parent===null && (typeof item.previous==="undefined" || item.previous===parent));
+		});
 	}
 	getItemByID(id){
 		return this.items.find((item)=>{
@@ -66,17 +66,24 @@ class Timeline{
 		context.stroke();
 	}
 	setElementColor(item){
-		if (item.hasPrevious){
-			let previous=this.getItemByID(item.previous);
-			if (previous._name===item._name){
-				item.color=previous.color;
+		if (typeof item.color==="undefined"){
+			if (item.hasPrevious){
+				for (let index in item.previous){
+					if (typeof item.color==="undefined"){
+						let previous=this.getItemByID(item.previous[index]);
+						console.log(previous.name+" -> "+item.name+" ("+(previous._name===item._name)+")");
+						if (previous._name===item._name){
+							item.color=previous.color;
+						}
+						else{
+							item.color="#"+this.generateRandomStr(6, "0123456789ABCDEF");
+						}
+					}
+				}
 			}
 			else{
 				item.color="#"+this.generateRandomStr(6, "0123456789ABCDEF");
 			}
-		}
-		else{
-			item.color="#"+this.generateRandomStr(6, "0123456789ABCDEF");
 		}
 	}
 	render(items, depth=0){
@@ -100,8 +107,10 @@ class Timeline{
 				context.fillText(items[index].name, fullWidth+((this.options.padding*2+this.options.margin)*index)+this.options.padding, (depth*(this.options.lineHeight+2*this.options.padding+this.options.margin))+this.options.lineHeight/2+this.options.padding);
 				fullWidth+=textWidth;
 				if (items[index].previous!==null){
-					let previous=this.getItemByID(items[index].previous);
-					this.drawLine(context, previous, items[index]);
+					for (let previousIndex in items[index].previous){
+						let previous=this.getItemByID(items[index].previous[previousIndex]);
+						this.drawLine(context, previous, items[index]);
+					}
 				}
 				this.render(this.getItemsWithPrevious(items[index].id), depth+1);
 			}
@@ -112,7 +121,14 @@ class TimelineItem{
 	constructor(name, previous, number, id){
 		this._id=typeof id!=="undefined" && id!==null?id:"";
 		this._name=name;
-		this.previous=previous;
+		if (typeof previous==="number"){
+			this.previous=[
+				previous
+			];
+		}
+		else{
+			this.previous=previous;
+		}
 		this.number=number;
 	}
 	get id(){
