@@ -9,6 +9,7 @@ class Timeline{
 			margin:30
 		};
 		this.render(this.getItemsWithPrevious(null));
+		console.log(this.items);
 	}
 	setItems(items){
 		for (let index in items){
@@ -135,6 +136,23 @@ class Timeline{
 			return item.x<x && item.x+item.width>x && item.y<y && item.y+item.height>y;
 		})!=="undefined";
 	}
+	getLastInLine(item){
+		let next=this.items.find((currentItem)=>{
+			return currentItem._name===item._name && currentItem.hasPrevious && currentItem.previous.length===1 && currentItem.previous[0]===item.id;
+		});
+		if (typeof next!=="undefined"){
+			next.grouped=item.id;
+			return this.getLastInLine(next);
+		}
+		return item.number;
+	}
+	getFirstInLine(id){
+		let previous=this.getItemByID(id);
+		if (previous.isGrouped){
+			return this.getFirstInLine(previous.grouped);
+		}
+		return previous;
+	}
 	render(items){
 		let context=this.canvas.getContext("2d");
 		if (items.length>0){
@@ -143,19 +161,27 @@ class Timeline{
 			context.font=fontSize+"px Arial";
 			for (let index in items){
 				this.setElementColor(items[index]);
-				let coordinates=this.getPossibleCoordinates(items[index]);
-				let textWidth=context.measureText(items[index].name).width;
+				let coordinates=this.getPossibleCoordinates(items[index]),
+					lastNumber=this.getLastInLine(items[index]),
+					textWidth=context.measureText(items[index].getName(lastNumber)).width;
 				context.fillStyle=items[index].color;
 				items[index].width=textWidth+2*this.options.padding;
 				items[index].height=this.options.lineHeight+2*this.options.padding;
-				if (items[index].previous!==null){
+				if (items[index].previous!==null && !items[index].isGrouped){
 					this.getItemsByIDs(items[index].previous).forEach((previous)=>{
-						this.drawLine(context, previous, items[index]);
+						if (previous.isGrouped){
+							this.drawLine(context, this.getFirstInLine(previous.grouped), items[index]);
+						}
+						else{
+							this.drawLine(context, previous, items[index]);
+						}
 					});
 				}
-				context.fillRect(items[index].x, items[index].y, items[index].width, items[index].height);
-				context.fillStyle="#000000";
-				context.fillText(items[index].name, items[index].x+this.options.padding, items[index].y+this.options.lineHeight/2+this.options.padding);
+				if (!items[index].isGrouped){
+					context.fillRect(items[index].x, items[index].y, items[index].width, items[index].height);
+					context.fillStyle="#000000";
+					context.fillText(items[index].getName(lastNumber), items[index].x+this.options.padding, items[index].y+this.options.lineHeight/2+this.options.padding);
+				}
 				this.render(this.getItemsWithPrevious(items[index].id));
 			}
 		}
@@ -174,6 +200,7 @@ class TimelineItem{
 			this.previous=previous;
 		}
 		this.number=number;
+		this.grouped=null;
 	}
 	get id(){
 		if (this._id!==""){
@@ -190,11 +217,22 @@ class TimelineItem{
 		return this._name+(this.number!==null?(" #"+this.number):"");
 	}
 
+	getName(lastNumber){
+		if (this.number!==null && lastNumber!==this.number){
+			return this.name+"-"+lastNumber;
+		}
+		return this.name;
+	}
+
 	get hasPrevious(){
 		return typeof this.previous!=="undefined" && this.previous!==null;
 	}
 
 	get hasCoordinates(){
 		return typeof this.x!=="undefined" && typeof this.y!=="undefined";
+	}
+
+	get isGrouped(){
+		return this.grouped!==null;
 	}
 }
