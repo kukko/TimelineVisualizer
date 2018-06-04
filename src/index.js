@@ -1,6 +1,7 @@
 class Timeline{
 	constructor(canvas, items){
 		this.canvas=canvas;
+		this.context=this.canvas.getContext("2d");
 		this.items=[];
 		this.setItems(items);
 		this.options={
@@ -9,7 +10,6 @@ class Timeline{
 			margin:30
 		};
 		this.render(this.getItemsWithPrevious(null));
-		console.log(this.items);
 	}
 	setItems(items){
 		for (let index in items){
@@ -101,11 +101,76 @@ class Timeline{
 		}
 	}
 	getPossibleCoordinates(item){
+		let textWidth=this.context.measureText(item.getName(this.getLastInLine(item))).width;
+		item.width=textWidth+2*this.options.padding;
+		item.height=this.options.lineHeight+2*this.options.padding;
 		if (!item.hasCoordinates){
 			if (item.previous!==null){
 				let previouses=this.getItemsByIDs(item.previous);
 				for (let index in previouses){
 					if (previouses[index]._name===item._name){
+						if ((!previouses[index].isGrouped || item.previous.length>1) && item.hasPrevious){
+							if (this.getItemsWithPrevious(item.id).length<=1){
+								let newX,
+									newY;
+								if (!previouses[index].hasCoordinates){
+									this.getPossibleCoordinates(previouses[index], true);
+								}
+								do{
+									newX=typeof newX==="undefined"?previouses[index].x:newX+previouses[index].width+this.options.margin,
+									newY=previouses[index].y+previouses[index].height+this.options.margin;
+								} while (this.coordinateIsCollisioning(newX, newY));
+								item.x=newX;
+								item.y=newY;
+							}
+						}
+						else{
+							if (!item.hasCoordinates){
+								let previous=this.getFirstInLine(previouses[index].grouped);
+								if (!previous.hasCoordinates){
+									this.getPossibleCoordinates(previous, true);
+								}
+								let newX=previous.x,
+									newY=previous.y+previous.height+this.options.margin;
+								if (!this.coordinateIsCollisioning(newX, newY)){
+									item.x=newX;
+									item.y=newY;
+								}
+							}
+						}
+					}
+					else{
+						let newX,
+							newY;
+						if (item._name==="Fantastic Four"){
+							this.getItemsWithPrevious(previouses[index].id).find((continuation)=>{
+								if (continuation._name===previouses[index]._name){
+									this.getPossibleCoordinates(continuation);
+									console.log(continuation);
+									return true;
+								}
+								return false;
+							});
+						}
+						do{
+							if (!previouses[index].hasCoordinates){
+								this.getPossibleCoordinates(previouses[index], true);
+							}
+							newX=typeof newX==="undefined"?previouses[index].x:newX+previouses[index].width+this.options.margin;
+							newY=previouses[index].y+previouses[index].height+this.options.margin;
+						} while (this.coordinateIsCollisioning(newX, newY));
+						item.x=newX;
+						item.y=newY;
+					}
+					if (item.hasCoordinates){
+						break;
+					}
+				}
+				if (!item.hasCoordinates){
+					for (let index in previouses){
+						if (!previouses[index].hasCoordinates){
+							this.getPossibleCoordinates(previouses[index], true);
+						}
 						let newX=previouses[index].x,
 							newY=previouses[index].y+previouses[index].height+this.options.margin;
 						if (!this.coordinateIsCollisioning(newX, newY)){
@@ -133,12 +198,12 @@ class Timeline{
 	}
 	coordinateIsCollisioning(x, y){
 		return typeof this.items.find((item)=>{
-			return item.x<x && item.x+item.width>x && item.y<y && item.y+item.height>y;
+			return item.x<=x && item.x+item.width>=x && item.y<=y && item.y+item.height>=y;
 		})!=="undefined";
 	}
 	getLastInLine(item){
 		let next=this.items.find((currentItem)=>{
-			return currentItem._name===item._name && currentItem.hasPrevious && currentItem.previous.length===1 && currentItem.previous[0]===item.id;
+			return currentItem._name===item._name && currentItem.hasPrevious && currentItem.previous.length===1 && this.getItemsWithPrevious(item.id).length===0 && currentItem.previous[0]===item.id;
 		});
 		if (typeof next!=="undefined"){
 			next.grouped=item.id;
@@ -162,11 +227,8 @@ class Timeline{
 			for (let index in items){
 				this.setElementColor(items[index]);
 				let coordinates=this.getPossibleCoordinates(items[index]),
-					lastNumber=this.getLastInLine(items[index]),
-					textWidth=context.measureText(items[index].getName(lastNumber)).width;
+					lastNumber=this.getLastInLine(items[index]);
 				context.fillStyle=items[index].color;
-				items[index].width=textWidth+2*this.options.padding;
-				items[index].height=this.options.lineHeight+2*this.options.padding;
 				if (items[index].previous!==null && !items[index].isGrouped){
 					this.getItemsByIDs(items[index].previous).forEach((previous)=>{
 						if (previous.isGrouped){
