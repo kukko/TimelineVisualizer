@@ -247,7 +247,7 @@ class Timeline{
 				}
 				if (!items[index].isGrouped){
 					context.fillRect(items[index].x, items[index].y, items[index].width, items[index].height);
-					context.fillStyle="#000000";
+					context.fillStyle=items[index].fontColor;
 					context.fillText(items[index].getName(lastNumber), items[index].x+this.options.padding, items[index].y+this.options.lineHeight/2+this.options.padding);
 				}
 				this.render(this.getItemsWithPrevious(items[index].id));
@@ -302,5 +302,14 @@ class TimelineItem{
 
 	get isGrouped(){
 		return this.grouped!==null;
+	}
+
+	get fontColor(){
+		let colorParts=this.color.replace("#", "").match(/.{2}/g),
+			sum=0;
+		for (let key in colorParts){
+			sum+=colorParts[key]=parseInt(colorParts[key], 16);
+		}
+		return sum/colorParts.length<255/2?"#FFFFFF":"#000000";
 	}
 }
