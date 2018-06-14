@@ -146,7 +146,6 @@ class Timeline{
 							this.getItemsWithPrevious(previouses[index].id).find((continuation)=>{
 								if (continuation._name===previouses[index]._name){
 									this.getPossibleCoordinates(continuation);
-									console.log(continuation);
 									return true;
 								}
 								return false;
@@ -203,10 +202,16 @@ class Timeline{
 	}
 	getLastInLine(item){
 		let next=this.items.find((currentItem)=>{
-			return currentItem._name===item._name && currentItem.hasPrevious && currentItem.previous.length===1 && this.getItemsWithPrevious(item.id).length===0 && currentItem.previous[0]===item.id;
+			return currentItem._name===item._name && 
+					currentItem.hasPrevious && 
+					currentItem.previous.length===1 && 
+					this.getItemsWithPrevious(item.id).length<=1 && 
+					currentItem.previous[0]===item.id;
 		});
 		if (typeof next!=="undefined"){
 			next.grouped=item.id;
+			next.x=item.x;
+			next.y=item.y;
 			return this.getLastInLine(next);
 		}
 		return item.number;
@@ -221,6 +226,7 @@ class Timeline{
 	render(items){
 		let context=this.canvas.getContext("2d");
 		if (items.length>0){
+			context.lineCap="round";
 			context.textBaseline="middle";
 			let fontSize=this.options.lineHeight-2*this.options.padding;
 			context.font=fontSize+"px Arial";
